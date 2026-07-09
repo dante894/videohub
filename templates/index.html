@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="container py-4">
+
+<div class="vh-hero">
+    <h1>Pega el link, elegí la <span class="accent">calidad</span>, listo.</h1>
+    <p>YouTube, Instagram y TikTok. Hasta 1080p, o solo el audio en MP3.</p>
+</div>
+
+<div class="vh-input-card">
+    <div class="vh-input-row">
+        <input
+            id="videoUrl"
+            placeholder="https://..."
+            autocomplete="off"
+        >
+        <button id="analyzeBtn" class="vh-btn vh-btn-accent">
+            Analizar
+        </button>
+    </div>
+</div>
+
+<div id="limitBanner"></div>
+
+<div id="result"></div>
+
+<div id="progressWrap" class="vh-progress-wrap">
+    <div class="progress">
+        <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated" style="width:0%"></div>
+    </div>
+    <div class="vh-progress-meta">
+        <span id="downloadSpeed">🚀 —</span>
+        <span id="downloadEta">⏳ —</span>
+    </div>
+</div>
+
+</div>
+
+{% endblock %}

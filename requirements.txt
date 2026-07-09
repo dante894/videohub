@@ -1,0 +1,9 @@
+Flask
+Flask-SocketIO
+python-dotenv
+yt-dlp
+python-telegram-bot==21.6
+SQLAlchemy
+waitress
+eventlet
+mercadopago

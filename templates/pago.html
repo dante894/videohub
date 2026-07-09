@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="container py-5">
+
+<div class="vh-hero">
+    {% if estado == "exitoso" %}
+        <h1>Pago <span class="accent">aprobado</span> 🎉</h1>
+        <p>
+            Tu plan PRO se está activando. En unos segundos vas a recibir la
+            confirmación acá mismo (si entraste desde Telegram, también te
+            llega un mensaje del bot).
+        </p>
+    {% elif estado == "pendiente" %}
+        <h1>Pago <span class="accent">pendiente</span></h1>
+        <p>Tu pago está siendo procesado. Te avisamos apenas se acredite.</p>
+    {% else %}
+        <h1>El pago no se <span class="accent">completó</span></h1>
+        <p>No te preocupes, no se realizó ningún cobro. Podés intentarlo de nuevo cuando quieras.</p>
+    {% endif %}
+
+    <a href="/" class="vh-btn vh-btn-ghost" style="display:inline-block;margin-top:20px;text-decoration:none;">
+        Volver a VideoHub
+    </a>
+</div>
+
+</div>
+
+{% endblock %}
