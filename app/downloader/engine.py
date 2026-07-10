@@ -28,6 +28,11 @@ class VideoDownloader:
 
     def _prepare_cookies_file(self):
         if not YTDLP_COOKIES_FILE:
+            logger.warning(
+                "YTDLP_COOKIES_FILE no está configurado: las descargas de "
+                "YouTube van a depender solo del truco de player_client, "
+                "que no siempre alcanza para esquivar el bloqueo anti-bot."
+            )
             return None
 
         source = Path(YTDLP_COOKIES_FILE)
@@ -38,6 +43,7 @@ class VideoDownloader:
 
         try:
             shutil.copyfile(source, _WRITABLE_COOKIES_PATH)
+            logger.info("Cookies de YouTube cargadas correctamente desde %s", source)
             return str(_WRITABLE_COOKIES_PATH)
         except Exception as e:
             logger.exception(e)
