@@ -57,7 +57,7 @@ class VideoDownloader:
         """
         options = {
             "extractor_args": {
-                "youtube": {"player_client": ["android", "web"]}
+                "youtube": {"player_client": ["android", "web", "ios"]}
             }
         }
 
@@ -113,7 +113,14 @@ class VideoDownloader:
                 "outtmpl": str(self.download_path / "%(title)s.%(ext)s"),
                 "format": (
                     f"bestvideo[height<={height}]+bestaudio/"
-                    f"best[height<={height}]"
+                    f"best[height<={height}]/"
+                    # Respaldo final: si el cliente de YouTube que estamos
+                    # usando no expone NINGÚN formato <= height para este
+                    # video puntual, mejor traer el mejor disponible que
+                    # fallar directo. En la práctica casi nunca se llega
+                    # a esta rama, porque YouTube casi siempre ofrece algo
+                    # igual o menor a 1080p.
+                    "bestvideo+bestaudio/best"
                 ),
                 "merge_output_format": "mp4",
                 "progress_hooks": [hook],
