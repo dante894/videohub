@@ -79,3 +79,4 @@ YTDLP_COOKIES_FILE = _env("YTDLP_COOKIES_FILE", "")
 # servicio de proxy con salida en el país que necesites; dejalo vacío si
 # no tenés uno.
 YTDLP_PROXY = _env("YTDLP_PROXY", "")
+logger.info("YTDLP_PROXY=%r", YTDLP_PROXY)
