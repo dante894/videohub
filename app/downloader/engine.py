@@ -2,7 +2,7 @@ import shutil
 from pathlib import Path
 from yt_dlp import YoutubeDL
 
-from app.config import MAX_VIDEO_HEIGHT, YTDLP_COOKIES_FILE
+from app.config import MAX_VIDEO_HEIGHT, YTDLP_COOKIES_FILE, YTDLP_PROXY
 from app.core.logger import logger
 
 QUALITY_HEIGHTS = {
@@ -69,6 +69,9 @@ class VideoDownloader:
 
         if self.cookies_file:
             options["cookiefile"] = self.cookies_file
+
+        if YTDLP_PROXY:
+            options["proxy"] = YTDLP_PROXY
 
         return options
 

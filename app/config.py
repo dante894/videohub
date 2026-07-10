@@ -71,3 +71,11 @@ TELEGRAM_MAX_FILE_MB = _int_env("TELEGRAM_MAX_FILE_MB", 50)
 # a bot" que YouTube aplica seguido a IPs de datacenter (Render, Railway,
 # etc). En Render: subilo como "Secret File" y queda en /etc/secrets/<nombre>.
 YTDLP_COOKIES_FILE = _env("YTDLP_COOKIES_FILE", "")
+
+# Proxy opcional para yt-dlp (formato http://user:pass@host:puerto o
+# socks5://host:puerto). Sirve para esquivar videos geobloqueados a un
+# país distinto al del servidor (p. ej. contenido restringido a
+# Argentina corriendo el bot desde EE.UU./Render). Requiere contratar un
+# servicio de proxy con salida en el país que necesites; dejalo vacío si
+# no tenés uno.
+YTDLP_PROXY = _env("YTDLP_PROXY", "")
