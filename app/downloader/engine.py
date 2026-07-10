@@ -1,7 +1,9 @@
+import shutil
 from pathlib import Path
 from yt_dlp import YoutubeDL
 
 from app.config import MAX_VIDEO_HEIGHT, YTDLP_COOKIES_FILE
+from app.core.logger import logger
 
 QUALITY_HEIGHTS = {
     "1080": 1080,
@@ -10,12 +12,38 @@ QUALITY_HEIGHTS = {
     "360": 360,
 }
 
+# yt-dlp reescribe el archivo de cookies después de cada uso (para
+# persistir cookies renovadas). Si YTDLP_COOKIES_FILE apunta a un Secret
+# File de Render, ese archivo es de solo lectura, así que trabajamos
+# siempre sobre una copia en un lugar donde sí se pueda escribir.
+_WRITABLE_COOKIES_PATH = Path("/tmp/videohub_cookies.txt")
+
 
 class VideoDownloader:
 
     def __init__(self, download_path="downloads"):
         self.download_path = Path(download_path)
         self.download_path.mkdir(exist_ok=True)
+        self.cookies_file = self._prepare_cookies_file()
+
+    def _prepare_cookies_file(self):
+        if not YTDLP_COOKIES_FILE:
+            return None
+
+        source = Path(YTDLP_COOKIES_FILE)
+
+        if not source.exists():
+            logger.warning("YTDLP_COOKIES_FILE configurado pero no existe: %s", source)
+            return None
+
+        try:
+            shutil.copyfile(source, _WRITABLE_COOKIES_PATH)
+            return str(_WRITABLE_COOKIES_PATH)
+        except Exception as e:
+            logger.exception(e)
+            # Si por algún motivo no se pudo copiar, probamos igual con el
+            # original (puede fallar si yt-dlp necesita reescribirlo).
+            return str(source)
 
     def _anti_bot_options(self):
         """Mitigaciones para el bloqueo "Sign in to confirm you're not a
@@ -33,8 +61,8 @@ class VideoDownloader:
             }
         }
 
-        if YTDLP_COOKIES_FILE and Path(YTDLP_COOKIES_FILE).exists():
-            options["cookiefile"] = YTDLP_COOKIES_FILE
+        if self.cookies_file:
+            options["cookiefile"] = self.cookies_file
 
         return options
 
