@@ -65,3 +65,9 @@ PUBLIC_BASE_URL = _env("PUBLIC_BASE_URL", "http://localhost:5000")
 
 # Límite de Telegram para que un bot envíe archivos (API estándar)
 TELEGRAM_MAX_FILE_MB = _int_env("TELEGRAM_MAX_FILE_MB", 50)
+
+# Ruta a un cookies.txt exportado de una cuenta real de YouTube (formato
+# Netscape). Ayuda a esquivar el bloqueo "Sign in to confirm you're not
+# a bot" que YouTube aplica seguido a IPs de datacenter (Render, Railway,
+# etc). En Render: subilo como "Secret File" y queda en /etc/secrets/<nombre>.
+YTDLP_COOKIES_FILE = _env("YTDLP_COOKIES_FILE", "")

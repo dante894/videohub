@@ -1,7 +1,7 @@
 from pathlib import Path
 from yt_dlp import YoutubeDL
 
-from app.config import MAX_VIDEO_HEIGHT
+from app.config import MAX_VIDEO_HEIGHT, YTDLP_COOKIES_FILE
 
 QUALITY_HEIGHTS = {
     "1080": 1080,
@@ -17,10 +17,32 @@ class VideoDownloader:
         self.download_path = Path(download_path)
         self.download_path.mkdir(exist_ok=True)
 
+    def _anti_bot_options(self):
+        """Mitigaciones para el bloqueo "Sign in to confirm you're not a
+        bot" que YouTube aplica seguido a IPs de datacenter (Render,
+        Railway, etc):
+
+        1) Forzar el cliente "android" de YouTube, que en general no pide
+           esta verificación (a veces alcanza solo con esto).
+        2) Si se configuró YTDLP_COOKIES_FILE (cookies.txt de una cuenta
+           real), usarlas: es la mitigación más confiable.
+        """
+        options = {
+            "extractor_args": {
+                "youtube": {"player_client": ["android", "web"]}
+            }
+        }
+
+        if YTDLP_COOKIES_FILE and Path(YTDLP_COOKIES_FILE).exists():
+            options["cookiefile"] = YTDLP_COOKIES_FILE
+
+        return options
+
     def get_info(self, url):
         options = {
             "quiet": True,
             "skip_download": True,
+            **self._anti_bot_options(),
         }
 
         with YoutubeDL(options) as ydl:
@@ -56,6 +78,7 @@ class VideoDownloader:
                 }],
                 "progress_hooks": [hook],
                 "quiet": True,
+                **self._anti_bot_options(),
             }
         else:
             options = {
@@ -67,6 +90,7 @@ class VideoDownloader:
                 "merge_output_format": "mp4",
                 "progress_hooks": [hook],
                 "quiet": True,
+                **self._anti_bot_options(),
             }
 
         with YoutubeDL(options) as ydl:
