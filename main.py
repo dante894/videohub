@@ -25,9 +25,18 @@ if __name__ == "__main__":
     telegram_thread.start()
 
     # Iniciar Flask + SocketIO
+    #
+    # allow_unsafe_werkzeug=True: usamos async_mode="threading" a propósito
+    # (ver app/socket_manager.py) para no chocar con los hilos/SSL que usa
+    # yt-dlp. Eso hace que Flask-SocketIO use el servidor de desarrollo de
+    # Werkzeug incluso en producción; para esta escala (un solo servicio,
+    # sin balanceo entre múltiples workers) es aceptable. Si el proyecto
+    # crece mucho, lo ideal sería migrar a async_mode="eventlet" o correr
+    # con gunicorn+eventlet detrás de un proxy.
     socketio.run(
         app,
         host=HOST,
         port=PORT,
-        debug=False
+        debug=False,
+        allow_unsafe_werkzeug=True,
     )

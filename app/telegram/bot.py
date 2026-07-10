@@ -53,7 +53,12 @@ def run():
 
     print("🤖 Bot iniciado")
 
-    application.run_polling(close_loop=False)
+    # stop_signals=None: run_polling() por defecto intenta registrar
+    # manejadores de SIGINT/SIGTERM, pero esto corre en un hilo secundario
+    # (main.py lo lanza con threading.Thread) y eso solo se puede hacer
+    # desde el hilo principal de Python. Sin este parámetro, el hilo del
+    # bot se cae apenas arranca.
+    application.run_polling(close_loop=False, stop_signals=None)
 
 
 def send_file_sync(chat_id, filepath, is_audio):
