@@ -127,7 +127,11 @@ def pro_checkout():
     key = _web_key()
 
     try:
-        checkout_url = create_pro_preference(key, back_base_url=request.url_root.rstrip("/"))
+        # Usamos PUBLIC_BASE_URL (la variable de entorno) y no request.url_root:
+        # Render entrega las peticiones a Flask por HTTP plano puertas adentro
+        # aunque el usuario entre por HTTPS, así que request.url_root puede
+        # devolver una URL que Mercado Pago rechaza.
+        checkout_url = create_pro_preference(key)
     except Exception as e:
         logger.exception(e)
         return jsonify({"error": "No se pudo generar el link de pago. Intenta más tarde."}), 500
