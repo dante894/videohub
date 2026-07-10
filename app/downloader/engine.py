@@ -81,7 +81,13 @@ class VideoDownloader:
             "skip_download": True,
             **self._anti_bot_options(),
         }
+        import os
 
+        logger.info("YTDLP_PROXY = %r", YTDLP_PROXY)
+        logger.info("HTTP_PROXY = %r", os.getenv("HTTP_PROXY"))
+        logger.info("HTTPS_PROXY = %r", os.getenv("HTTPS_PROXY"))
+        logger.info("ALL_PROXY = %r", os.getenv("ALL_PROXY"))
+        logger.info("options = %s", options)
         with YoutubeDL(options) as ydl:
             info = ydl.extract_info(url, download=False)
 
