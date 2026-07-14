@@ -1,6 +1,6 @@
 import uuid
 from pathlib import Path
-
+from urllib.parse import urljoin
 from flask import (
     Blueprint, jsonify, request, render_template, session, send_file, abort,
 )
@@ -65,6 +65,52 @@ def analyze():
     return jsonify(info)
 
 
+@web.post("/api/download")
+def api_download():
+
+    payload = request.json or {}
+
+    url = payload.get("url")
+    quality = payload.get("quality", "1080")
+    audio = bool(payload.get("audio", False))
+
+    if not url:
+        return jsonify({"error": "URL requerida"}), 400
+
+    try:
+
+        filepath = service.download_now(
+            url=url,
+            quality=quality,
+            audio=audio,
+        )
+
+        path = Path(filepath)
+
+        file_id = uuid.uuid4().hex
+
+        READY_FILES[file_id] = str(path)
+
+        download_url = urljoin(
+            request.host_url,
+            f"download/{file_id}"
+        )
+
+        return jsonify({
+            "success": True,
+            "filename": path.name,
+            "download_url": download_url,
+        })
+
+    except Exception as e:
+
+        logger.exception(e)
+
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+    
 @web.post("/enqueue")
 def enqueue():
     payload = request.json or {}
