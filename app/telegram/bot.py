@@ -14,6 +14,7 @@ from app.core.logger import logger
 
 from app.telegram.handlers import (
     start,
+    help_command,
     status,
     receive_url,
     button,
@@ -24,6 +25,17 @@ from app.telegram.handlers import (
 # mensajes/archivos desde el hilo trabajador de la cola de descargas.
 _LOOP = None
 _BOT = None
+
+
+async def _setup_commands(application):
+    """Registra el menú nativo de comandos de Telegram (aparece al tocar
+    el botón '/' en el chat), con una descripción corta para cada uno."""
+    await application.bot.set_my_commands([
+        ("start", "Ver la guía de bienvenida"),
+        ("pro", "Pasar al plan PRO"),
+        ("status", "Ver cuántas descargas te quedan hoy"),
+        ("help", "Cómo usar el bot"),
+    ])
 
 
 def run():
@@ -37,6 +49,7 @@ def run():
     application = (
         Application.builder()
         .token(TELEGRAM_TOKEN)
+        .post_init(_setup_commands)
         .build()
     )
     _BOT = application.bot
@@ -44,6 +57,7 @@ def run():
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("pro", send_pro_link))
     application.add_handler(CommandHandler("status", status))
+    application.add_handler(CommandHandler("help", help_command))
 
     application.add_handler(
         MessageHandler(filters.TEXT & ~filters.COMMAND, receive_url)

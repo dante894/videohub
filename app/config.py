@@ -43,6 +43,9 @@ TELEGRAM_TOKEN = _env("TELEGRAM_TOKEN", None)
 # Descargas gratuitas permitidas por día (por usuario de Telegram)
 FREE_DAILY_LIMIT = _int_env("FREE_DAILY_LIMIT", 3)
 
+# Descargas permitidas por día para usuarios PRO (ya no ilimitadas)
+PRO_DAILY_LIMIT = _int_env("PRO_DAILY_LIMIT", 10)
+
 # Calidad máxima permitida (en píxeles de altura)
 MAX_VIDEO_HEIGHT = _int_env("MAX_VIDEO_HEIGHT", 1080)
 
@@ -78,4 +81,5 @@ YTDLP_COOKIES_FILE = _env("YTDLP_COOKIES_FILE", "")
 # Argentina corriendo el bot desde EE.UU./Render). Requiere contratar un
 # servicio de proxy con salida en el país que necesites; dejalo vacío si
 # no tenés uno.
+YTDLP_PROXY = _env("YTDLP_PROXY", "")
 

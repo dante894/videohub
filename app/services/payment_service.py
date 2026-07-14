@@ -36,6 +36,17 @@ def create_pro_preference(user_key, back_base_url=None):
 
     base_url = back_base_url or PUBLIC_BASE_URL
 
+    # Mercado Pago exige que "back_urls.success" sea una URL pública real
+    # para poder usar auto_return (si le pasás localhost, la creación de
+    # la preferencia falla). Corriendo en desarrollo local, generamos el
+    # link de pago igual, pero sin auto_return ni notification_url —
+    # el pago funciona, solo que no hay redirección automática ni aviso
+    # automático por webhook (para eso hace falta una URL pública real,
+    # por ejemplo con ngrok o ya desplegado en Render/Railway).
+    is_public_url = base_url.startswith("https://") or (
+        base_url.startswith("http://") and "localhost" not in base_url and "127.0.0.1" not in base_url
+    )
+
     preference_data = {
         "items": [
             {
@@ -46,14 +57,24 @@ def create_pro_preference(user_key, back_base_url=None):
             }
         ],
         "external_reference": str(user_key),
-        "notification_url": f"{PUBLIC_BASE_URL}/webhook/mercadopago",
         "back_urls": {
             "success": f"{base_url}/pago/exitoso",
             "failure": f"{base_url}/pago/fallido",
             "pending": f"{base_url}/pago/pendiente",
         },
-        "auto_return": "approved",
     }
+
+    if is_public_url:
+        preference_data["notification_url"] = f"{PUBLIC_BASE_URL}/webhook/mercadopago"
+        preference_data["auto_return"] = "approved"
+    else:
+        logger.warning(
+            "PUBLIC_BASE_URL (%s) no es una URL pública: se genera el link de "
+            "pago sin auto_return ni notification_url. El pago va a funcionar, "
+            "pero no vas a recibir el aviso automático de Mercado Pago ni la "
+            "redirección de vuelta al sitio.",
+            base_url,
+        )
 
     result = sdk.preference().create(preference_data)
     preference = result.get("response", {})

@@ -8,7 +8,7 @@ export async function refreshStatus() {
 
         if (data.is_pro) {
             pill.classList.add("is-pro");
-            pill.innerHTML = `💎 PRO · hasta ${data.pro_until}`;
+            pill.innerHTML = `💎 PRO · ${data.remaining}/${data.pro_daily_limit} descargas hoy · hasta ${data.pro_until}`;
         } else {
             pill.classList.remove("is-pro");
             pill.innerHTML = `🆓 ${data.remaining}/${data.daily_limit} descargas hoy · <span id="proPillBtn" style="text-decoration:underline;cursor:pointer;">Hazte PRO</span>`;

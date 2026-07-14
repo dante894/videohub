@@ -52,18 +52,11 @@ class VideoDownloader:
             return str(source)
 
     def _anti_bot_options(self):
-        """Mitigaciones para el bloqueo "Sign in to confirm you're not a
-        bot" que YouTube aplica seguido a IPs de datacenter (Render,
-        Railway, etc):
-
-        1) Forzar el cliente "android" de YouTube, que en general no pide
-           esta verificación (a veces alcanza solo con esto).
-        2) Si se configuró YTDLP_COOKIES_FILE (cookies.txt de una cuenta
-           real), usarlas: es la mitigación más confiable.
-        """
         options = {
             "extractor_args": {
-                "youtube": {"player_client": ["android", "web", "ios"]}
+                "youtube": {
+                    "player_client": ["android", "web", "ios"]
+                }
             }
         }
 
@@ -81,13 +74,6 @@ class VideoDownloader:
             "skip_download": True,
             **self._anti_bot_options(),
         }
-        import os
-
-        logger.info("YTDLP_PROXY = %r", YTDLP_PROXY)
-        logger.info("HTTP_PROXY = %r", os.getenv("HTTP_PROXY"))
-        logger.info("HTTPS_PROXY = %r", os.getenv("HTTPS_PROXY"))
-        logger.info("ALL_PROXY = %r", os.getenv("ALL_PROXY"))
-        logger.info("options = %s", options)
         with YoutubeDL(options) as ydl:
             info = ydl.extract_info(url, download=False)
 

@@ -1,7 +1,7 @@
 from telegram import Update
 from telegram.ext import ContextTypes
 
-from app.config import FREE_DAILY_LIMIT, PRO_PRICE_ARS, PRO_DURATION_DAYS
+from app.config import FREE_DAILY_LIMIT, PRO_DAILY_LIMIT, PRO_PRICE_ARS, PRO_DURATION_DAYS
 from app.telegram.service import download_service, usage_service
 from app.telegram.keyboards import pro_offer_keyboard, pro_payment_keyboard
 from app.services.payment_service import create_pro_preference
@@ -14,14 +14,37 @@ def tg_key(user_id):
     return f"tg:{user_id}"
 
 
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(
-        "👋 Bienvenido a VideoHub\n\n"
-        "Envíame un enlace de YouTube, Instagram o TikTok y te lo descargo "
-        "directo, en la mejor calidad disponible (máximo 1080p).\n\n"
+def _guide_text():
+    return (
         f"🆓 Plan gratuito: {FREE_DAILY_LIMIT} descargas por día.\n"
-        "💎 Usa /pro para descargas ilimitadas.\n"
-        "📊 Usa /status para ver cuántas descargas te quedan hoy."
+        f"💎 Plan PRO: {PRO_DAILY_LIMIT} descargas por día — usa /pro.\n"
+        "📊 Usa /status para ver cuántas descargas te quedan hoy.\n"
+        "❓ Usa /help si en algún momento te perdés."
+    )
+
+
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    name = update.effective_user.first_name or "🙂"
+    await update.message.reply_text(
+        f"👋 ¡Hola, {name}! Soy VideoHub, tu asistente para bajar videos.\n\n"
+        "Así de simple funciona:\n"
+        "1️⃣ Copiá el link de un video de YouTube, Instagram o TikTok.\n"
+        "2️⃣ Pegámelo acá, en este chat.\n"
+        "3️⃣ Esperá unos segundos y te lo mando en la mejor calidad "
+        "disponible (hasta 1080p).\n\n"
+        "Por ejemplo, probá pegando algo como:\n"
+        "https://www.youtube.com/watch?v=dQw4w9WgXcQ\n\n"
+        + _guide_text(),
+        reply_markup=pro_offer_keyboard(),
+    )
+
+
+async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(
+        "ℹ️ Cómo usar VideoHub:\n\n"
+        "Pegá el link de un video de YouTube, Instagram o TikTok directo en "
+        "este chat (sin escribir nada más) y te lo descargo automáticamente.\n\n"
+        + _guide_text()
     )
 
 
@@ -30,8 +53,12 @@ async def status(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if usage_service.is_pro(tg_key(user_id)):
         until = usage_service.pro_until(tg_key(user_id))
+        remaining = usage_service.remaining_today(tg_key(user_id))
+        used = PRO_DAILY_LIMIT - remaining
         await update.message.reply_text(
-            f"💎 Eres usuario PRO (activo hasta {until}).\nDescargas ilimitadas."
+            f"💎 Eres usuario PRO (activo hasta {until}).\n"
+            f"Descargas usadas hoy: {used}/{PRO_DAILY_LIMIT}\n"
+            f"Te quedan: {remaining}"
         )
         return
 
@@ -42,7 +69,7 @@ async def status(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "🆓 Plan gratuito\n"
         f"Descargas usadas hoy: {used}/{FREE_DAILY_LIMIT}\n"
         f"Te quedan: {remaining}\n\n"
-        "Usa /pro para descargas ilimitadas.",
+        "Usa /pro para más descargas por día.",
         reply_markup=pro_offer_keyboard(),
     )
 
@@ -58,17 +85,25 @@ async def receive_url(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if not url.startswith("http"):
         await update.message.reply_text(
-            "❌ Eso no parece un enlace válido. Envíame un link de YouTube, "
-            "Instagram o TikTok."
+            "🤔 Eso no parece un link de video. Pegame directo la URL de "
+            "YouTube, Instagram o TikTok que querés descargar.\n\n"
+            "Ejemplo: https://www.youtube.com/watch?v=dQw4w9WgXcQ\n\n"
+            "¿No sabés cómo empezar? Escribí /help."
         )
         return
 
     if not usage_service.can_download(tg_key(user_id)):
-        await update.message.reply_text(
-            f"🚫 Alcanzaste el límite de {FREE_DAILY_LIMIT} descargas gratuitas de hoy.\n"
-            "Vuelve mañana o hazte PRO para descargas ilimitadas 👇",
-            reply_markup=pro_offer_keyboard(),
-        )
+        if usage_service.is_pro(tg_key(user_id)):
+            await update.message.reply_text(
+                f"🚫 Alcanzaste el límite de {PRO_DAILY_LIMIT} descargas PRO de hoy.\n"
+                "Vuelve mañana para seguir descargando."
+            )
+        else:
+            await update.message.reply_text(
+                f"🚫 Alcanzaste el límite de {FREE_DAILY_LIMIT} descargas gratuitas de hoy.\n"
+                f"Vuelve mañana o hazte PRO para tener {PRO_DAILY_LIMIT} descargas por día 👇",
+                reply_markup=pro_offer_keyboard(),
+            )
         return
 
     usage_service.register_download(tg_key(user_id))
@@ -118,7 +153,7 @@ async def send_pro_link(update: Update, context: ContextTypes.DEFAULT_TYPE):
         chat_id=chat_id,
         text=(
             f"💎 VideoHub PRO — ${PRO_PRICE_ARS:.0f} ARS\n"
-            f"Descargas ilimitadas durante {PRO_DURATION_DAYS} días.\n\n"
+            f"{PRO_DAILY_LIMIT} descargas por día durante {PRO_DURATION_DAYS} días.\n\n"
             "Toca el botón para pagar con Mercado Pago. En cuanto se acredite "
             "el pago, te activo el PRO automáticamente y te aviso por acá."
         ),

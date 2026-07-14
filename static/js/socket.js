@@ -34,7 +34,7 @@ socket.on("pro_activated", () => {
     refreshStatus();
     document.getElementById("limitBanner").innerHTML = `
         <div class="vh-banner vh-banner-success">
-            <span>🎉 ¡Listo! Ya sos usuario PRO, descargas ilimitadas.</span>
+            <span>🎉 ¡Listo! Ya sos usuario PRO.</span>
         </div>
     `;
 });

@@ -68,3 +68,15 @@ class DownloadService:
                 "speed": "-",
                 "eta": "0s",
             })
+
+    def download_now(self, url, quality="1080", audio=False):
+        """
+        Descarga el archivo de forma síncrona (sin cola).
+        Devuelve la ruta del archivo descargado.
+        """
+        return self.engine.download(
+        url,
+        quality=quality,
+        audio=audio,
+        progress_callback=None,
+    )

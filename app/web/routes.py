@@ -8,7 +8,7 @@ from flask import (
 from app.services.registry import download_service as service, usage_service
 from app.services.payment_service import create_pro_preference, get_payment
 from app.socket_manager import socketio
-from app.config import FREE_DAILY_LIMIT, PRO_PRICE_ARS, PRO_DURATION_DAYS
+from app.config import FREE_DAILY_LIMIT, PRO_DAILY_LIMIT, PRO_PRICE_ARS, PRO_DURATION_DAYS
 from app.core.logger import logger
 
 web = Blueprint("web", __name__)
@@ -45,6 +45,7 @@ def api_status():
         "pro_until": usage_service.pro_until(key) if is_pro else None,
         "remaining": usage_service.remaining_today(key),
         "daily_limit": FREE_DAILY_LIMIT,
+        "pro_daily_limit": PRO_DAILY_LIMIT,
         "pro_price_ars": PRO_PRICE_ARS,
     })
 
@@ -77,8 +78,10 @@ def enqueue():
     key = _web_key()
 
     if not usage_service.can_download(key):
+        limit = PRO_DAILY_LIMIT if usage_service.is_pro(key) else FREE_DAILY_LIMIT
+        plan = "PRO" if usage_service.is_pro(key) else "gratuitas"
         return jsonify({
-            "error": f"Alcanzaste el límite de {FREE_DAILY_LIMIT} descargas gratuitas de hoy.",
+            "error": f"Alcanzaste el límite de {limit} descargas {plan} de hoy.",
             "limit_reached": True,
         }), 403
 
@@ -178,7 +181,8 @@ def mercadopago_webhook():
                 from app.telegram.bot import send_message_sync
                 send_message_sync(
                     int(telegram_id),
-                    f"🎉 ¡Pago aprobado! Ahora eres usuario PRO hasta el {until}. Descargas ilimitadas 💎",
+                    f"🎉 ¡Pago aprobado! Ahora eres usuario PRO hasta el {until}. "
+                    f"{PRO_DAILY_LIMIT} descargas por día 💎",
                 )
             elif user_key.startswith("web:"):
                 room = user_key.split(":", 1)[1]

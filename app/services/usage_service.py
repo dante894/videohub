@@ -3,7 +3,7 @@ from datetime import date, timedelta
 from pathlib import Path
 from threading import Lock
 
-from app.config import BASE_DIR, FREE_DAILY_LIMIT
+from app.config import BASE_DIR, FREE_DAILY_LIMIT, PRO_DAILY_LIMIT
 
 DB_PATH = Path(BASE_DIR) / "usage.db"
 
@@ -18,9 +18,10 @@ class UsageService:
     de límites/PRO sirve para ambos canales.
     """
 
-    def __init__(self, db_path=DB_PATH, daily_limit=FREE_DAILY_LIMIT):
+    def __init__(self, db_path=DB_PATH, daily_limit=FREE_DAILY_LIMIT, pro_daily_limit=PRO_DAILY_LIMIT):
         self.db_path = db_path
         self.daily_limit = daily_limit
+        self.pro_daily_limit = pro_daily_limit
         self._lock = Lock()
         self._init_db()
 
@@ -102,15 +103,14 @@ class UsageService:
         return row[0] if row else 0
 
     def remaining_today(self, user_key):
-        """None significa ilimitado (usuario PRO)."""
-        if self.is_pro(user_key):
-            return None
-        return max(0, self.daily_limit - self.usage_today(user_key))
+        """Ya no hay ilimitado: los PRO tienen su propio límite diario,
+        más alto que el de los usuarios gratuitos."""
+        limit = self.pro_daily_limit if self.is_pro(user_key) else self.daily_limit
+        return max(0, limit - self.usage_today(user_key))
 
     def can_download(self, user_key):
-        if self.is_pro(user_key):
-            return True
-        return self.usage_today(user_key) < self.daily_limit
+        limit = self.pro_daily_limit if self.is_pro(user_key) else self.daily_limit
+        return self.usage_today(user_key) < limit
 
     def register_download(self, user_key):
         user_key = str(user_key)
