@@ -183,8 +183,12 @@ def pro_checkout():
         checkout_url = create_pro_preference(key)
     except Exception as e:
         logger.exception(e)
-        return jsonify({"error": "No se pudo generar el link de pago. Intenta más tarde."}), 500
 
+    return jsonify({
+        "success": False,
+        "error": str(e),
+        "type": type(e).__name__,
+    }), 500
     return jsonify({"checkout_url": checkout_url})
 
 
