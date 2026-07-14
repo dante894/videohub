@@ -250,3 +250,10 @@ def pago_fallido():
 @web.route("/pago/pendiente")
 def pago_pendiente():
     return render_template("pago.html", estado="pendiente")
+
+@web.get("/ping")
+def ping():
+    return jsonify({
+        "ok": True,
+        "version": "api-download-v1"
+    })
