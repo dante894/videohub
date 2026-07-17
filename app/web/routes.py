@@ -10,6 +10,7 @@ from app.services.payment_service import create_pro_preference, get_payment
 from app.socket_manager import socketio
 from app.config import FREE_DAILY_LIMIT, PRO_DAILY_LIMIT, PRO_PRICE_ARS, PRO_DURATION_DAYS
 from app.core.logger import logger
+from app.config import PUBLIC_BASE_URL
 
 web = Blueprint("web", __name__)
 
@@ -91,10 +92,7 @@ def api_download():
 
         READY_FILES[file_id] = str(path)
 
-        download_url = urljoin(
-            request.host_url,
-            f"download/{file_id}"
-        )
+        download_url = f"{PUBLIC_BASE_URL}/download/{file_id}"
 
         return jsonify({
             "success": True,
