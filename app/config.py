@@ -82,9 +82,10 @@ YTDLP_COOKIES_FILE = _env("YTDLP_COOKIES_FILE", "")
 # Argentina corriendo el bot desde EE.UU./Render). Requiere contratar un
 # servicio de proxy con salida en el país que necesites; dejalo vacío si
 # no tenés uno.
+# Proxy por defecto (compatibilidad)
 YTDLP_PROXY = _env("YTDLP_PROXY", "")
-YTDLP_PROXY_DEFAULT = _env("YTDLP_PROXY_DEFAULT", "")
 
+# Proxies por región
 YTDLP_PROXY_AR = _env("YTDLP_PROXY_AR", "")
 YTDLP_PROXY_US = _env("YTDLP_PROXY_US", "")
 YTDLP_PROXY_EU = _env("YTDLP_PROXY_EU", "")
