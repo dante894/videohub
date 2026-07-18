@@ -3,7 +3,7 @@ from pathlib import Path
 from yt_dlp import YoutubeDL
 
 
-from app.core.logger import logger
+from app.core.logger import logger 
 from app.config import (
     MAX_VIDEO_HEIGHT,
     YTDLP_COOKIES_FILE,
