@@ -16,6 +16,15 @@ PROXIES = {
     "US": YTDLP_PROXY_US,
     "EU": YTDLP_PROXY_EU,
 }
+
+from app.config import (
+    MAX_VIDEO_HEIGHT,
+    YTDLP_COOKIES_FILE,
+    YTDLP_PROXY,
+    YTDLP_PROXY_AR,
+    YTDLP_PROXY_US,
+    YTDLP_PROXY_EU,
+)
 # yt-dlp reescribe el archivo de cookies después de cada uso (para
 # persistir cookies renovadas). Si YTDLP_COOKIES_FILE apunta a un Secret
 # File de Render, ese archivo es de solo lectura, así que trabajamos
