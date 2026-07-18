@@ -11,7 +11,11 @@ QUALITY_HEIGHTS = {
     "480": 480,
     "360": 360,
 }
-
+PROXIES = {
+    "AR": YTDLP_PROXY_AR,
+    "US": YTDLP_PROXY_US,
+    "EU": YTDLP_PROXY_EU,
+}
 # yt-dlp reescribe el archivo de cookies después de cada uso (para
 # persistir cookies renovadas). Si YTDLP_COOKIES_FILE apunta a un Secret
 # File de Render, ese archivo es de solo lectura, así que trabajamos
