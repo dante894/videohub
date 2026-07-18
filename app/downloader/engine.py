@@ -319,9 +319,27 @@ class VideoDownloader:
                 **self._anti_bot_options(),
             }
 
-        with YoutubeDL(options) as ydl:
-            info = ydl.extract_info(url, download=True)
-            filename = ydl.prepare_filename(info)
+        try:
+
+    with YoutubeDL(options) as ydl:
+        info = ydl.extract_info(url, download=True)
+        filename = ydl.prepare_filename(info)
+
+except Exception as e:
+
+    texto = str(e).lower()
+
+    if (
+        "not available in your country" in texto
+        or "video unavailable" in texto
+        or "blocked" in texto
+    ):
+
+        logger.info("Intentando otros proxies...")
+        filename, info = self._download_with_proxy(options, url)
+
+    else:
+        raise
 
         if audio:
             # FFmpegExtractAudio cambia la extensión final a mp3
