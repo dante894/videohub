@@ -168,8 +168,7 @@ def _anti_bot_options(self, proxy=None):
     return options
 
     def _download_with_proxy(self, options, url):
-
-    last_error = None
+        last_error = None
 
     for region, proxy in PROXIES:
 
