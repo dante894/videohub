@@ -1,9 +1,10 @@
 import shutil
 from pathlib import Path
+
 from yt_dlp import YoutubeDL
 
+from app.core.logger import logger
 
-from app.core.logger import logger 
 from app.config import (
     MAX_VIDEO_HEIGHT,
     YTDLP_COOKIES_FILE,
@@ -19,12 +20,13 @@ QUALITY_HEIGHTS = {
     "480": 480,
     "360": 360,
 }
-PROXIES = {
-    None,
-    "AR": YTDLP_PROXY_AR,
-    "US": YTDLP_PROXY_US,
-    "EU": YTDLP_PROXY_EU,
-}
+
+PROXIES = [
+    ("DEFAULT", YTDLP_PROXY),
+    ("AR", YTDLP_PROXY_AR),
+    ("US", YTDLP_PROXY_US),
+    ("EU", YTDLP_PROXY_EU),
+]
 
 from app.config import (
     MAX_VIDEO_HEIGHT,
@@ -147,22 +149,32 @@ class VideoDownloader:
             # original (puede fallar si yt-dlp necesita reescribirlo).
             return str(source)
 
-    def _anti_bot_options(self):
-        options = {
-            "extractor_args": {
-                "youtube": {
-                    "player_client": ["android", "web", "ios"]
-                }
+def _anti_bot_options(self, proxy=None):
+
+    options = {
+        "extractor_args": {
+            "youtube": {
+                "player_client": ["android", "web", "ios"]
             }
         }
+    }
 
-        def _download_with_proxy(self, options, url):
+    if self.cookies_file:
+        options["cookiefile"] = self.cookies_file
+
+    if proxy:
+        options["proxy"] = proxy
+
+    return options
+
+    def _download_with_proxy(self, options, url):
 
     last_error = None
 
-    for region, proxy in PROXIES.items():
+    for region, proxy in PROXIES:
 
         try:
+
             logger.info(f"Probando proxy {region}")
 
             opts = options.copy()
@@ -172,6 +184,8 @@ class VideoDownloader:
                 info = ydl.extract_info(url, download=True)
                 filename = ydl.prepare_filename(info)
 
+            logger.info(f"Descargado usando proxy {region}")
+
             return filename, info
 
         except Exception as e:
@@ -180,15 +194,7 @@ class VideoDownloader:
             last_error = e
 
     raise last_error
-
-        if self.cookies_file:
-            options["cookiefile"] = self.cookies_file
-
-        if YTDLP_PROXY:
-            options["proxy"] = YTDLP_PROXY
-
-        return options
-
+    
     def get_info(self, url):
         options = {
             "quiet": True,
@@ -250,9 +256,28 @@ class VideoDownloader:
                 **self._anti_bot_options(),
             }
 
-        with YoutubeDL(options) as ydl:
-            info = ydl.extract_info(url, download=True)
-            filename = ydl.prepare_filename(info)
+try:
+
+    with YoutubeDL(options) as ydl:
+        info = ydl.extract_info(url, download=True)
+        filename = ydl.prepare_filename(info)
+
+except Exception as e:
+
+    texto = str(e).lower()
+
+    if (
+        "not available in your country" in texto
+        or "video unavailable" in texto
+        or "blocked" in texto
+    ):
+
+        logger.info("Video bloqueado por región. Probando otros proxies...")
+
+        filename, info = self._download_with_proxy(options, url)
+
+    else:
+        raise
 
         if audio:
             # FFmpegExtractAudio cambia la extensión final a mp3
