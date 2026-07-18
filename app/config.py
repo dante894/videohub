@@ -1,5 +1,6 @@
 from pathlib import Path
 from dotenv import load_dotenv
+
 import os
 
 load_dotenv()
@@ -82,3 +83,8 @@ YTDLP_COOKIES_FILE = _env("YTDLP_COOKIES_FILE", "")
 # servicio de proxy con salida en el país que necesites; dejalo vacío si
 # no tenés uno.
 YTDLP_PROXY = _env("YTDLP_PROXY", "")
+YTDLP_PROXY_DEFAULT = _env("YTDLP_PROXY_DEFAULT", "")
+
+YTDLP_PROXY_AR = _env("YTDLP_PROXY_AR", "")
+YTDLP_PROXY_US = _env("YTDLP_PROXY_US", "")
+YTDLP_PROXY_EU = _env("YTDLP_PROXY_EU", "")
