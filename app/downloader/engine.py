@@ -20,6 +20,7 @@ QUALITY_HEIGHTS = {
     "360": 360,
 }
 PROXIES = {
+    None,
     "AR": YTDLP_PROXY_AR,
     "US": YTDLP_PROXY_US,
     "EU": YTDLP_PROXY_EU,
