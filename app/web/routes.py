@@ -100,14 +100,17 @@ def api_download():
             "download_url": download_url,
         })
 
-    except Exception as e:
-
-        logger.exception(e)
-
+            except Exception as e:
+            logger.exception(e)
+            return jsonify({
+                "success": False,
+                "error": str(e),
+                "type": type(e).__name__,
+            }), 500
+        
         return jsonify({
-            "success": False,
-            "error": str(e)
-        }), 500
+            "checkout_url": checkout_url
+        })
     
 @web.post("/enqueue")
 def enqueue():
