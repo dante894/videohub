@@ -1,140 +1,60 @@
+
 import shutil
 from pathlib import Path
 from yt_dlp import YoutubeDL
-
-from app.config import MAX_VIDEO_HEIGHT, YTDLP_COOKIES_FILE, YTDLP_PROXY
 from app.core.logger import logger
-
-QUALITY_HEIGHTS = {
-    "1080": 1080,
-    "720": 720,
-    "480": 480,
-    "360": 360,
-}
-
-# yt-dlp reescribe el archivo de cookies después de cada uso (para
-# persistir cookies renovadas). Si YTDLP_COOKIES_FILE apunta a un Secret
-# File de Render, ese archivo es de solo lectura, así que trabajamos
-# siempre sobre una copia en un lugar donde sí se pueda escribir.
-_WRITABLE_COOKIES_PATH = Path("/tmp/videohub_cookies.txt")
-
-
+from app.config import MAX_VIDEO_HEIGHT,YTDLP_COOKIES_FILE,YTDLP_PROXY,YTDLP_PROXY_AR,YTDLP_PROXY_US,YTDLP_PROXY_EU
+QUALITY_HEIGHTS={"1080":1080,"720":720,"480":480,"360":360}
+_WRITABLE_COOKIES_PATH=Path("/tmp/videohub_cookies.txt")
+PROXIES=[("DEFAULT",YTDLP_PROXY),("AR",YTDLP_PROXY_AR),("US",YTDLP_PROXY_US),("EU",YTDLP_PROXY_EU)]
 class VideoDownloader:
-
-    def __init__(self, download_path="downloads"):
-        self.download_path = Path(download_path)
-        self.download_path.mkdir(exist_ok=True)
-        self.cookies_file = self._prepare_cookies_file()
-
+    def __init__(self,download_path="downloads"):
+        self.download_path=Path(download_path); self.download_path.mkdir(exist_ok=True)
+        self.cookies_file=self._prepare_cookies_file()
     def _prepare_cookies_file(self):
-        if not YTDLP_COOKIES_FILE:
-            logger.warning(
-                "YTDLP_COOKIES_FILE no está configurado: las descargas de "
-                "YouTube van a depender solo del truco de player_client, "
-                "que no siempre alcanza para esquivar el bloqueo anti-bot."
-            )
-            return None
-
-        source = Path(YTDLP_COOKIES_FILE)
-
-        if not source.exists():
-            logger.warning("YTDLP_COOKIES_FILE configurado pero no existe: %s", source)
-            return None
-
+        if not YTDLP_COOKIES_FILE: return None
+        src=Path(YTDLP_COOKIES_FILE)
+        if not src.exists(): return None
         try:
-            shutil.copyfile(source, _WRITABLE_COOKIES_PATH)
-            logger.info("Cookies de YouTube cargadas correctamente desde %s", source)
-            return str(_WRITABLE_COOKIES_PATH)
-        except Exception as e:
-            logger.exception(e)
-            # Si por algún motivo no se pudo copiar, probamos igual con el
-            # original (puede fallar si yt-dlp necesita reescribirlo).
-            return str(source)
-
-    def _anti_bot_options(self):
-        options = {
-            "extractor_args": {
-                "youtube": {
-                    "player_client": ["android", "web", "ios"]
-                }
-            }
-        }
-
-        if self.cookies_file:
-            options["cookiefile"] = self.cookies_file
-
-        if YTDLP_PROXY:
-            options["proxy"] = YTDLP_PROXY
-
-        return options
-
-    def get_info(self, url):
-        options = {
-            "quiet": True,
-            "skip_download": True,
-            **self._anti_bot_options(),
-        }
-        with YoutubeDL(options) as ydl:
-            info = ydl.extract_info(url, download=False)
-
-        return {
-            "title": info.get("title"),
-            "duration": info.get("duration"),
-            "thumbnail": info.get("thumbnail"),
-            "uploader": info.get("uploader"),
-            "webpage_url": info.get("webpage_url"),
-        }
-
-    def download(self, url, quality="1080", audio=False, progress_callback=None):
-        """Descarga el video en la calidad pedida (tope MAX_VIDEO_HEIGHT) o el audio en MP3."""
-
+            shutil.copyfile(src,_WRITABLE_COOKIES_PATH); return str(_WRITABLE_COOKIES_PATH)
+        except Exception:
+            return str(src)
+    def _anti_bot_options(self,proxy=None):
+        o={"extractor_args":{"youtube":{"player_client":["android","web","ios"]}}}
+        if self.cookies_file:o["cookiefile"]=self.cookies_file
+        if proxy:o["proxy"]=proxy
+        return o
+    def _download_with_proxy(self,options,url):
+        last=None
+        for region,proxy in PROXIES:
+            if not proxy: continue
+            try:
+                opts=options.copy(); opts.update(self._anti_bot_options(proxy))
+                with YoutubeDL(opts) as ydl:
+                    info=ydl.extract_info(url,download=True); return ydl.prepare_filename(info),info
+            except Exception as e:
+                last=e
+        raise last
+    def get_info(self,url):
+        with YoutubeDL({"quiet":True,"skip_download":True,**self._anti_bot_options()}) as ydl:
+            i=ydl.extract_info(url,download=False)
+        return {"title":i.get("title"),"duration":i.get("duration"),"thumbnail":i.get("thumbnail"),"uploader":i.get("uploader"),"webpage_url":i.get("webpage_url")}
+    def download(self,url,quality="1080",audio=False,progress_callback=None):
         def hook(d):
-            if progress_callback:
-                progress_callback(d)
-
-        # Nunca se permite superar la calidad máxima configurada (1080p por defecto),
-        # sin importar lo que pida el usuario.
-        height = min(QUALITY_HEIGHTS.get(str(quality), MAX_VIDEO_HEIGHT), MAX_VIDEO_HEIGHT)
-
+            if progress_callback: progress_callback(d)
+        h=min(QUALITY_HEIGHTS.get(str(quality),MAX_VIDEO_HEIGHT),MAX_VIDEO_HEIGHT)
+        opts={"outtmpl":str(self.download_path/"%(title)s.%(ext)s"),"progress_hooks":[hook],"quiet":True,**self._anti_bot_options()}
         if audio:
-            options = {
-                "outtmpl": str(self.download_path / "%(title)s.%(ext)s"),
-                "format": "bestaudio/best",
-                "postprocessors": [{
-                    "key": "FFmpegExtractAudio",
-                    "preferredcodec": "mp3",
-                    "preferredquality": "192",
-                }],
-                "progress_hooks": [hook],
-                "quiet": True,
-                **self._anti_bot_options(),
-            }
+            opts["format"]="bestaudio/best"; opts["postprocessors"]=[{"key":"FFmpegExtractAudio","preferredcodec":"mp3","preferredquality":"192"}]
         else:
-            options = {
-                "outtmpl": str(self.download_path / "%(title)s.%(ext)s"),
-                "format": (
-                    f"bestvideo[height<={height}]+bestaudio/"
-                    f"best[height<={height}]/"
-                    # Respaldo final: si el cliente de YouTube que estamos
-                    # usando no expone NINGÚN formato <= height para este
-                    # video puntual, mejor traer el mejor disponible que
-                    # fallar directo. En la práctica casi nunca se llega
-                    # a esta rama, porque YouTube casi siempre ofrece algo
-                    # igual o menor a 1080p.
-                    "bestvideo+bestaudio/best"
-                ),
-                "merge_output_format": "mp4",
-                "progress_hooks": [hook],
-                "quiet": True,
-                **self._anti_bot_options(),
-            }
-
-        with YoutubeDL(options) as ydl:
-            info = ydl.extract_info(url, download=True)
-            filename = ydl.prepare_filename(info)
-
-        if audio:
-            # FFmpegExtractAudio cambia la extensión final a mp3
-            filename = str(Path(filename).with_suffix(".mp3"))
-
-        return filename
+            opts["format"]=f"bestvideo[height<={h}]+bestaudio/best[height<={h}]/bestvideo+bestaudio/best"; opts["merge_output_format"]="mp4"
+        try:
+            with YoutubeDL(opts) as ydl:
+                info=ydl.extract_info(url,download=True); fn=ydl.prepare_filename(info)
+        except Exception as e:
+            t=str(e).lower()
+            if any(x in t for x in ["country","geo","blocked","403","unavailable"]):
+                fn,info=self._download_with_proxy(opts,url)
+            else: raise
+        if audio: fn=str(Path(fn).with_suffix(".mp3"))
+        return fn

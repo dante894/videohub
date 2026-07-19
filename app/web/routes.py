@@ -10,6 +10,7 @@ from app.services.payment_service import create_pro_preference, get_payment
 from app.socket_manager import socketio
 from app.config import FREE_DAILY_LIMIT, PRO_DAILY_LIMIT, PRO_PRICE_ARS, PRO_DURATION_DAYS
 from app.core.logger import logger
+from app.config import PUBLIC_BASE_URL
 
 web = Blueprint("web", __name__)
 
@@ -91,10 +92,7 @@ def api_download():
 
         READY_FILES[file_id] = str(path)
 
-        download_url = urljoin(
-            request.host_url,
-            f"download/{file_id}"
-        )
+        download_url = f"{PUBLIC_BASE_URL}/download/{file_id}"
 
         return jsonify({
             "success": True,
@@ -163,9 +161,18 @@ def _deliver_web_file(room, filepath):
 
 @web.get("/download/<file_id>")
 def download_file(file_id):
+
+    logger.info(f"DOWNLOAD solicitado: {file_id}")
+    logger.info(f"READY_FILES = {READY_FILES}")
+
     filepath = READY_FILES.get(file_id)
 
-    if not filepath or not Path(filepath).exists():
+    if not filepath:
+        logger.warning("No existe file_id")
+        abort(404)
+
+    if not Path(filepath).exists():
+        logger.warning("No existe archivo")
         abort(404)
 
     return send_file(filepath, as_attachment=True)
@@ -261,3 +268,5 @@ def ping():
         "ok": True,
         "version": "api-download-v1"
     })
+
+
