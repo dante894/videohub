@@ -100,6 +100,7 @@ def api_download():
             "download_url": download_url,
         })
 
+<<<<<<< HEAD
     except Exception as e:
         logger.exception(e)
         return jsonify({
@@ -109,6 +110,20 @@ def api_download():
         }), 500
 
 
+=======
+            except Exception as e:
+            logger.exception(e)
+            return jsonify({
+                "success": False,
+                "error": str(e),
+                "type": type(e).__name__,
+            }), 500
+        
+        return jsonify({
+            "checkout_url": checkout_url
+        })
+    
+>>>>>>> 9616f479e624d34117da271be28dbf417b645766
 @web.post("/enqueue")
 def enqueue():
     payload = request.json or {}
