@@ -87,6 +87,10 @@ class VideoDownloader:
     last_error = None
 
     for region, proxy in PROXIES:
+
+        logger.info(f"Probando {region}")
+        logger.info(f"Proxy: {proxy}")
+        
         try:
             logger.info(f"Intentando proxy {region}")
 
@@ -108,11 +112,12 @@ class VideoDownloader:
 
     def get_info(self, url):
 
-        options = {
-            "quiet": True,
-            "skip_download": True,
-            **self._anti_bot_options(),
-        }
+    options = {
+        "quiet": False,
+        "verbose": True,
+        "skip_download": True,
+        **self._anti_bot_options(),
+    }
 
         with YoutubeDL(options) as ydl:
             info = ydl.extract_info(url, download=False)
@@ -185,6 +190,8 @@ class VideoDownloader:
                 filename = ydl.prepare_filename(info)
 
         except Exception as e:
+            logger.exception(e)
+            raise
         
             texto = str(e).lower()
         
