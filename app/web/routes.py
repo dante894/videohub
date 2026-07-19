@@ -101,14 +101,14 @@ def api_download():
         })
 
     except Exception as e:
-
         logger.exception(e)
-
         return jsonify({
             "success": False,
-            "error": str(e)
+            "error": str(e),
+            "type": type(e).__name__,
         }), 500
-    
+
+
 @web.post("/enqueue")
 def enqueue():
     payload = request.json or {}
@@ -190,13 +190,13 @@ def pro_checkout():
         checkout_url = create_pro_preference(key)
     except Exception as e:
         logger.exception(e)
+        return jsonify({
+            "success": False,
+            "error": str(e),
+            "type": type(e).__name__,
+        }), 500
 
-    return jsonify({
-        "success": False,
-        "error": str(e),
-        "type": type(e).__name__,
-    }), 500
-    return jsonify({"checkout_url": checkout_url})
+    return jsonify({"success": True, "checkout_url": checkout_url})
 
 
 @web.route("/webhook/mercadopago", methods=["GET", "POST"])

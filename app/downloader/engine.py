@@ -1,60 +1,221 @@
-
 import shutil
 from pathlib import Path
+
 from yt_dlp import YoutubeDL
+
 from app.core.logger import logger
-from app.config import MAX_VIDEO_HEIGHT,YTDLP_COOKIES_FILE,YTDLP_PROXY,YTDLP_PROXY_AR,YTDLP_PROXY_US,YTDLP_PROXY_EU
-QUALITY_HEIGHTS={"1080":1080,"720":720,"480":480,"360":360}
-_WRITABLE_COOKIES_PATH=Path("/tmp/videohub_cookies.txt")
-PROXIES=[("DEFAULT",YTDLP_PROXY),("AR",YTDLP_PROXY_AR),("US",YTDLP_PROXY_US),("EU",YTDLP_PROXY_EU)]
+
+from app.config import (
+    MAX_VIDEO_HEIGHT,
+    YTDLP_COOKIES_FILE,
+    YTDLP_PROXY,
+    YTDLP_PROXY_AR,
+    YTDLP_PROXY_US,
+    YTDLP_PROXY_EU,
+)
+
+QUALITY_HEIGHTS = {
+    "1080": 1080,
+    "720": 720,
+    "480": 480,
+    "360": 360,
+}
+
+_WRITABLE_COOKIES_PATH = Path("/tmp/videohub_cookies.txt")
+
+PROXIES = [
+    ("DEFAULT", YTDLP_PROXY),
+    ("AR", YTDLP_PROXY_AR),
+    ("US", YTDLP_PROXY_US),
+    ("EU", YTDLP_PROXY_EU),
+]
+
 class VideoDownloader:
-    def __init__(self,download_path="downloads"):
-        self.download_path=Path(download_path); self.download_path.mkdir(exist_ok=True)
-        self.cookies_file=self._prepare_cookies_file()
+
+    def __init__(self, download_path="downloads"):
+
+        self.download_path = Path(download_path)
+        self.download_path.mkdir(exist_ok=True)
+
+        self.cookies_file = self._prepare_cookies_file()
+
+
     def _prepare_cookies_file(self):
-        if not YTDLP_COOKIES_FILE: return None
-        src=Path(YTDLP_COOKIES_FILE)
-        if not src.exists(): return None
+
+        if not YTDLP_COOKIES_FILE:
+            logger.warning("No hay archivo de cookies.")
+            return None
+
+        source = Path(YTDLP_COOKIES_FILE)
+
+        if not source.exists():
+            logger.warning("No existe %s", source)
+            return None
+
         try:
-            shutil.copyfile(src,_WRITABLE_COOKIES_PATH); return str(_WRITABLE_COOKIES_PATH)
+            shutil.copyfile(source, _WRITABLE_COOKIES_PATH)
+            return str(_WRITABLE_COOKIES_PATH)
+
         except Exception:
-            return str(src)
-    def _anti_bot_options(self,proxy=None):
-        o={"extractor_args":{"youtube":{"player_client":["android","web","ios"]}}}
-        if self.cookies_file:o["cookiefile"]=self.cookies_file
-        if proxy:o["proxy"]=proxy
-        return o
-    def _download_with_proxy(self,options,url):
-        last=None
-        for region,proxy in PROXIES:
-            if not proxy: continue
-            try:
-                opts=options.copy(); opts.update(self._anti_bot_options(proxy))
-                with YoutubeDL(opts) as ydl:
-                    info=ydl.extract_info(url,download=True); return ydl.prepare_filename(info),info
-            except Exception as e:
-                last=e
-        raise last
-    def get_info(self,url):
-        with YoutubeDL({"quiet":True,"skip_download":True,**self._anti_bot_options()}) as ydl:
-            i=ydl.extract_info(url,download=False)
-        return {"title":i.get("title"),"duration":i.get("duration"),"thumbnail":i.get("thumbnail"),"uploader":i.get("uploader"),"webpage_url":i.get("webpage_url")}
-    def download(self,url,quality="1080",audio=False,progress_callback=None):
-        def hook(d):
-            if progress_callback: progress_callback(d)
-        h=min(QUALITY_HEIGHTS.get(str(quality),MAX_VIDEO_HEIGHT),MAX_VIDEO_HEIGHT)
-        opts={"outtmpl":str(self.download_path/"%(title)s.%(ext)s"),"progress_hooks":[hook],"quiet":True,**self._anti_bot_options()}
-        if audio:
-            opts["format"]="bestaudio/best"; opts["postprocessors"]=[{"key":"FFmpegExtractAudio","preferredcodec":"mp3","preferredquality":"192"}]
-        else:
-            opts["format"]=f"bestvideo[height<={h}]+bestaudio/best[height<={h}]/bestvideo+bestaudio/best"; opts["merge_output_format"]="mp4"
+            logger.exception("No se pudieron copiar las cookies.")
+            return str(source)
+
+    def _anti_bot_options(self, proxy=None):
+
+        options = {
+            "extractor_args": {
+                "youtube": {
+                    "player_client": [
+                        "android",
+                        "web",
+                        "ios",
+                    ]
+                }
+            }
+        }
+
+        if self.cookies_file:
+            options["cookiefile"] = self.cookies_file
+
+        if proxy:
+            options["proxy"] = proxy
+
+        return options
+
+
+    def _download_with_proxy(self, options, url):
+    last_error = None
+
+    for region, proxy in PROXIES:
+
+        logger.info(f"Probando {region}")
+        logger.info(f"Proxy: {proxy}")
+        
         try:
+            logger.info(f"Intentando proxy {region}")
+
+            opts = options.copy()
+            opts.update(self._anti_bot_options(proxy))
+
             with YoutubeDL(opts) as ydl:
-                info=ydl.extract_info(url,download=True); fn=ydl.prepare_filename(info)
+                info = ydl.extract_info(url, download=True)
+                filename = ydl.prepare_filename(info)
+
+            logger.info(f"OK usando proxy {region}")
+            return filename, info
+
         except Exception as e:
-            t=str(e).lower()
-            if any(x in t for x in ["country","geo","blocked","403","unavailable"]):
-                fn,info=self._download_with_proxy(opts,url)
-            else: raise
-        if audio: fn=str(Path(fn).with_suffix(".mp3"))
-        return fn
+            logger.warning(f"Falló proxy {region}: {e}")
+            last_error = e
+
+    raise last_error
+
+    def get_info(self, url):
+
+    options = {
+        "quiet": False,
+        "verbose": True,
+        "skip_download": True,
+        **self._anti_bot_options(),
+    }
+
+        with YoutubeDL(options) as ydl:
+            info = ydl.extract_info(url, download=False)
+
+        return {
+            "title": info.get("title"),
+            "duration": info.get("duration"),
+            "thumbnail": info.get("thumbnail"),
+            "uploader": info.get("uploader"),
+            "webpage_url": info.get("webpage_url"),
+        }
+
+    def download(
+        self,
+        url,
+        quality="1080",
+        audio=False,
+        progress_callback=None,
+    ):
+
+        def hook(d):
+            if progress_callback:
+                progress_callback(d)
+
+        height = min(
+            QUALITY_HEIGHTS.get(str(quality), MAX_VIDEO_HEIGHT),
+            MAX_VIDEO_HEIGHT,
+        )
+
+        if audio:
+
+            options = {
+                "outtmpl": str(self.download_path / "%(title)s.%(ext)s"),
+                "format": "bestaudio/best",
+                "postprocessors": [{
+                    "key": "FFmpegExtractAudio",
+                    "preferredcodec": "mp3",
+                    "preferredquality": "192",
+                }],
+                "progress_hooks": [hook],
+                "quiet": True,
+                **self._anti_bot_options(),
+            }
+
+        else:
+
+            options = {
+                "outtmpl": str(self.download_path / "%(title)s.%(ext)s"),
+                "format": (
+                    f"bestvideo[height<={height}]"
+                    "+bestaudio/"
+                    f"best[height<={height}]/"
+                    "bestvideo+bestaudio/best"
+                ),
+                "merge_output_format": "mp4",
+                "progress_hooks": [hook],
+                "quiet": True,
+                **self._anti_bot_options(),
+            }
+
+        try:
+
+            with YoutubeDL(options) as ydl:
+
+                info = ydl.extract_info(
+                    url,
+                    download=True,
+                )
+
+                filename = ydl.prepare_filename(info)
+
+        except Exception as e:
+            logger.exception(e)
+            raise
+        
+            texto = str(e).lower()
+        
+            region_errors = (
+                "not available in your country",
+                "blocked",
+                "geo",
+                "country",
+                "video unavailable",
+                "403",
+                "forbidden",
+                "requested format is not available",
+                "playability",
+            )
+        
+            if any(x in texto for x in region_errors):
+        
+                logger.info("Intentando otros proxies...")
+        
+                filename, info = self._download_with_proxy(
+                    options,
+                    url,
+                )
+        
+            else:
+                raise
+        

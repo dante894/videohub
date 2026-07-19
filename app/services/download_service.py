@@ -75,8 +75,8 @@ class DownloadService:
         Devuelve la ruta del archivo descargado.
         """
         return self.engine.download(
-        url,
-        quality=quality,
-        audio=audio,
-        progress_callback=None,
-    )
+            url,
+            quality=quality,
+            audio=audio,
+            progress_callback=None,
+        )
