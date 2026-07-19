@@ -84,33 +84,24 @@ class VideoDownloader:
 
 
     def _download_with_proxy(self, options, url):
-
     last_error = None
 
     for region, proxy in PROXIES:
-
-        if not proxy:
-            continue
-
         try:
-
-            logger.info(f"Probando proxy {region}")
+            logger.info(f"Intentando proxy {region}")
 
             opts = options.copy()
             opts.update(self._anti_bot_options(proxy))
 
             with YoutubeDL(opts) as ydl:
-
                 info = ydl.extract_info(url, download=True)
                 filename = ydl.prepare_filename(info)
 
-            logger.info(f"Descarga OK usando {region}")
-
+            logger.info(f"OK usando proxy {region}")
             return filename, info
 
         except Exception as e:
-
-            logger.warning(f"{region} falló: {e}")
+            logger.warning(f"Falló proxy {region}: {e}")
             last_error = e
 
     raise last_error
