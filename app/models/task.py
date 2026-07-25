@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from uuid import uuid4
 
@@ -17,7 +17,7 @@ class DownloadTask:
 
     status: str = "waiting"
 
-    created_at: datetime = datetime.now()
+    created_at: datetime = field(default_factory=datetime.now)
 
     @staticmethod
     def create(url, quality="best", audio=False):

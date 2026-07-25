@@ -29,11 +29,12 @@ class QueueService:
         print("[QUEUE] Worker iniciado")
         while True:
             item = self.queue.get()
+            logger.info("Procesando elemento de la cola: %s", item)
 
             try:
                 worker(item)
             except Exception as e:
-                logger.info("Nuevo elemento en cola: %s", item)
+                logger.exception("Error procesando elemento de la cola: %s", e)
             finally:
                 self.queue.task_done()
 

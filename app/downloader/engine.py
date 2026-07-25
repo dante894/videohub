@@ -4,14 +4,12 @@ from pathlib import Path
 from yt_dlp import YoutubeDL
 
 from app.core.logger import logger
+from app.proxy_manager.manager import proxy_manager
+from app.proxy_manager.pool import POOL
 
 from app.config import (
     MAX_VIDEO_HEIGHT,
     YTDLP_COOKIES_FILE,
-    YTDLP_PROXY,
-    YTDLP_PROXY_AR,
-    YTDLP_PROXY_US,
-    YTDLP_PROXY_EU,
 )
 
 QUALITY_HEIGHTS = {
@@ -21,14 +19,23 @@ QUALITY_HEIGHTS = {
     "360": 360,
 }
 
+# Errores típicos de geo-bloqueo / bloqueo anti-bot que justifican
+# reintentar la descarga rotando de proxy.
+REGION_ERRORS = (
+    "not available in your country",
+    "blocked",
+    "geo",
+    "country",
+    "video unavailable",
+    "403",
+    "forbidden",
+    "requested format is not available",
+    "playability",
+    "sign in to confirm",
+)
+
 _WRITABLE_COOKIES_PATH = Path("/tmp/videohub_cookies.txt")
 
-PROXIES = [
-    ("DEFAULT", YTDLP_PROXY),
-    ("AR", YTDLP_PROXY_AR),
-    ("US", YTDLP_PROXY_US),
-    ("EU", YTDLP_PROXY_EU),
-]
 
 class VideoDownloader:
 
@@ -38,7 +45,6 @@ class VideoDownloader:
         self.download_path.mkdir(exist_ok=True)
 
         self.cookies_file = self._prepare_cookies_file()
-
 
     def _prepare_cookies_file(self):
 
@@ -60,7 +66,7 @@ class VideoDownloader:
             logger.exception("No se pudieron copiar las cookies.")
             return str(source)
 
-    def _anti_bot_options(self, proxy=None):
+    def _anti_bot_options(self, proxy_url=None):
 
         options = {
             "extractor_args": {
@@ -77,47 +83,61 @@ class VideoDownloader:
         if self.cookies_file:
             options["cookiefile"] = self.cookies_file
 
-        if proxy:
-            options["proxy"] = proxy
+        if proxy_url:
+            options["proxy"] = proxy_url
 
         return options
 
+    def _is_region_error(self, error):
+        texto = str(error).lower()
+        return any(x in texto for x in REGION_ERRORS)
 
     def _download_with_proxy(self, options, url):
-    last_error = None
+        """Reintenta la descarga rotando por todos los proxies disponibles
+        en el pool. Devuelve el filename resultante o relanza el último
+        error si ninguno funcionó."""
 
-    for region, proxy in PROXIES:
+        last_error = None
 
-        logger.info(f"Probando {region}")
-        logger.info(f"Proxy: {proxy}")
-        
-        try:
-            logger.info(f"Intentando proxy {region}")
+        if not POOL:
+            logger.warning("No hay proxies configurados para reintentar.")
+            raise RuntimeError("No hay proxies disponibles para reintentar.")
 
-            opts = options.copy()
-            opts.update(self._anti_bot_options(proxy))
+        for proxy in POOL:
 
-            with YoutubeDL(opts) as ydl:
-                info = ydl.extract_info(url, download=True)
-                filename = ydl.prepare_filename(info)
+            if not proxy.available():
+                continue
 
-            logger.info(f"OK usando proxy {region}")
-            return filename, info
+            logger.info(f"Probando proxy {proxy.name} ({proxy.country})")
 
-        except Exception as e:
-            logger.warning(f"Falló proxy {region}: {e}")
-            last_error = e
+            try:
+                opts = options.copy()
+                opts.update(self._anti_bot_options(proxy.url))
 
-    raise last_error
+                with YoutubeDL(opts) as ydl:
+                    info = ydl.extract_info(url, download=True)
+                    filename = ydl.prepare_filename(info)
+
+                logger.info(f"OK usando proxy {proxy.name}")
+                proxy_manager.success(proxy)
+                return filename
+
+            except Exception as e:
+                logger.warning(f"Falló proxy {proxy.name}: {e}")
+                proxy_manager.failure(proxy)
+                last_error = e
+
+        raise last_error or RuntimeError(
+            "No se pudo descargar con ninguno de los proxies disponibles."
+        )
 
     def get_info(self, url):
 
-    options = {
-        "quiet": False,
-        "verbose": True,
-        "skip_download": True,
-        **self._anti_bot_options(),
-    }
+        options = {
+            "quiet": True,
+            "skip_download": True,
+            **self._anti_bot_options(),
+        }
 
         with YoutubeDL(options) as ydl:
             info = ydl.extract_info(url, download=False)
@@ -189,33 +209,13 @@ class VideoDownloader:
 
                 filename = ydl.prepare_filename(info)
 
+            return filename
+
         except Exception as e:
             logger.exception(e)
-            raise
-        
-            texto = str(e).lower()
-        
-            region_errors = (
-                "not available in your country",
-                "blocked",
-                "geo",
-                "country",
-                "video unavailable",
-                "403",
-                "forbidden",
-                "requested format is not available",
-                "playability",
-            )
-        
-            if any(x in texto for x in region_errors):
-        
+
+            if self._is_region_error(e):
                 logger.info("Intentando otros proxies...")
-        
-                filename, info = self._download_with_proxy(
-                    options,
-                    url,
-                )
-        
-            else:
-                raise
-        
+                return self._download_with_proxy(options, url)
+
+            raise
