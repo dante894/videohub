@@ -5,7 +5,8 @@ from app.config import (
     YTDLP_PROXY_EU,
 )
 
-from .models import Proxy
+from .proxy import Proxy
+
 
 POOL = []
 
@@ -23,7 +24,7 @@ if YTDLP_PROXY_AR:
         Proxy(
             "AR",
             YTDLP_PROXY_AR,
-            "AR",
+            "Argentina",
         )
     )
 
@@ -32,7 +33,7 @@ if YTDLP_PROXY_US:
         Proxy(
             "US",
             YTDLP_PROXY_US,
-            "US",
+            "USA",
         )
     )
 
@@ -41,6 +42,6 @@ if YTDLP_PROXY_EU:
         Proxy(
             "EU",
             YTDLP_PROXY_EU,
-            "EU",
+            "Europa",
         )
     )

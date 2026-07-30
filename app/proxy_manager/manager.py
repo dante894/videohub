@@ -1,6 +1,4 @@
-from time import time
-
-from .pool import POOL
+from app.proxy_manager.pool import POOL
 
 
 class ProxyManager:
@@ -9,39 +7,25 @@ class ProxyManager:
 
         self.index = 0
 
+    def all(self):
+
+        return POOL
+
     def next(self):
 
         if not POOL:
             return None
 
-        total = len(POOL)
+        proxy = POOL[self.index]
 
-        for _ in range(total):
+        self.index = (self.index + 1) % len(POOL)
 
-            proxy = POOL[self.index]
-
-            self.index = (self.index + 1) % total
-
-            if proxy.available():
-                return proxy
-
-        return None
+        return proxy
 
     def success(self, proxy):
 
-        proxy.enabled = True
-
-        proxy.failures = 0
-
-        proxy.last_success = time()
+        proxy.success()
 
     def failure(self, proxy):
 
-        proxy.failures += 1
-
-        proxy.enabled = False
-
-        proxy.last_failure = time()
-
-
-proxy_manager = ProxyManager()
+        proxy.failure()

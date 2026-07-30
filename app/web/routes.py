@@ -11,6 +11,8 @@ from app.socket_manager import socketio
 from app.config import FREE_DAILY_LIMIT, PRO_DAILY_LIMIT, PRO_PRICE_ARS, PRO_DURATION_DAYS
 from app.core.logger import logger
 from app.config import PUBLIC_BASE_URL
+from app.proxy_manager.pool import POOL 
+from app.diagnostics.network import NetworkDiagnostics   
 
 web = Blueprint("web", __name__)
 
@@ -269,4 +271,32 @@ def ping():
         "version": "api-download-v1"
     })
 
+@web.get("/debug/proxies")
+def debug_proxies():
 
+    return {
+        "count": len(POOL),
+        "proxies": [
+            {
+                "name": p.name,
+                "country": p.country,
+                "url": p.url,
+                "alive": p.available(),
+            }
+            for p in POOL
+        ]
+    }
+
+@web.get("/debug/network")
+def debug_network():
+    return NetworkDiagnostics.geo()
+
+@web.get("/debug/cookies")
+def debug_cookies():
+
+    from app.config import YTDLP_COOKIES_FILE
+
+    return {
+        "cookies": YTDLP_COOKIES_FILE,
+        "exists": Path(YTDLP_COOKIES_FILE).exists()
+    }
