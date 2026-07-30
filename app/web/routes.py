@@ -12,7 +12,11 @@ from app.config import FREE_DAILY_LIMIT, PRO_DAILY_LIMIT, PRO_PRICE_ARS, PRO_DUR
 from app.core.logger import logger
 from app.config import PUBLIC_BASE_URL
 from app.proxy_manager.pool import POOL 
+<<<<<<< HEAD
 from app.diagnostic.network import NetworkDiagnostics
+=======
+from app.diagnostics.network import NetworkDiagnostics   
+>>>>>>> e320f02e5d5d374d21667f2b5487fcac82b0ba10
 
 web = Blueprint("web", __name__)
 
