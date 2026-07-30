@@ -270,10 +270,7 @@ def pago_pendiente():
 
 @web.get("/ping")
 def ping():
-    return jsonify({
-        "ok": True,
-        "version": "api-download-v1"
-    })
+    return jsonify({"ok": True, "version": "api-download-v1"})
 
 @web.get("/debug/proxies")
 def debug_proxies():
