@@ -82,7 +82,6 @@ class VideoDownloader:
         except Exception as e:
             logger.exception(e)
 
-<<<<<<< HEAD
             if RetryStrategy.should_retry(e) and POOL:
                 logger.info("Intentando otros proxies...")
                 return self._download_with_proxy(ctx, hook, url)
@@ -94,11 +93,6 @@ class VideoDownloader:
                     "YTDLP_PROXY_US / YTDLP_PROXY_EU en el .env). Se relanza "
                     "el error original de yt-dlp en vez de uno genérico."
                 )
-=======
-            if RetryStrategy.should_retry(e):
-                logger.info("Intentando otros proxies...")
-                return self._download_with_proxy(ctx, hook, url)
->>>>>>> e320f02e5d5d374d21667f2b5487fcac82b0ba10
 
             raise
 
